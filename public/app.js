@@ -266,16 +266,16 @@
         <td>
           <div class="action-buttons">
             ${isAdmin && e.status === 'pending' ? `
-              <button class="btn-approve" onclick="window.app.updateExpense(${e.id}, 'approved')">Approve</button>
-              <button class="btn-reject" onclick="window.app.updateExpense(${e.id}, 'rejected')">Reject</button>
+              <button class="btn-approve" onclick="window.app.updateExpense('${e.id}', 'approved')">Approve</button>
+              <button class="btn-reject" onclick="window.app.updateExpense('${e.id}', 'rejected')">Reject</button>
             ` : ''}
             ${isAdmin && e.status !== 'pending' ? `
-              <button class="btn-revert" onclick="window.app.updateExpense(${e.id}, 'pending')">Revert</button>
+              <button class="btn-revert" onclick="window.app.updateExpense('${e.id}', 'pending')">Revert</button>
             ` : ''}
             ${isAdmin || (!isAdmin && e.status === 'pending') ? `
-              <button class="btn-edit" onclick="window.app.editExpense(${e.id})">Edit</button>
+              <button class="btn-edit" onclick="window.app.editExpense('${e.id}')">Edit</button>
             ` : ''}
-            <button class="btn-delete" onclick="window.app.confirmDelete(${e.id}, '${escapeHtml(e.description).replace(/'/g, "\\'")}')">Delete</button>
+            <button class="btn-delete" onclick="window.app.confirmDelete('${e.id}', '${escapeHtml(e.description).replace(/'/g, "\\'")}')">Delete</button>
           </div>
         </td>
       </tr>`
@@ -570,6 +570,49 @@
     overlay.addEventListener('click', () => overlay.closest('.modal').classList.remove('active'));
   });
 
+  // Account Modal
+  function openAccountModal() {
+    if (!currentUser) return;
+    const avatar = currentUser.profile_image
+      ? `<img src="${currentUser.profile_image}" alt="">`
+      : `<span class="account-initials">${currentUser.username.charAt(0).toUpperCase()}</span>`;
+    $('#account-avatar').innerHTML = avatar;
+    $('#account-username').textContent = currentUser.username;
+    $('#account-role').textContent = currentUser.role;
+    $('#account-email').textContent = currentUser.email || 'Not set';
+    $('#account-phone').textContent = currentUser.phone || 'Not set';
+    const statusEl = $('#account-status');
+    statusEl.textContent = currentUser.status || 'active';
+    statusEl.className = 'info-value account-status ' + (currentUser.status || 'active');
+    $('#password-form').reset();
+    $('#pw-error').textContent = '';
+    $('#modal-account').classList.add('active');
+  }
+  $('#nav-user').addEventListener('click', openAccountModal);
+
+  // Password Change
+  $('#password-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = $('#pw-error');
+    errEl.textContent = '';
+    const current = $('#pw-current').value;
+    const newPw = $('#pw-new').value;
+    const confirm = $('#pw-confirm').value;
+    if (newPw !== confirm) { errEl.textContent = 'New passwords do not match'; return; }
+    if (newPw.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
+    try {
+      await api('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: current, newPassword: newPw }),
+      });
+      toast('Password updated successfully');
+      $('#password-form').reset();
+      setTimeout(() => $('#modal-account').classList.remove('active'), 800);
+    } catch (err) {
+      errEl.textContent = err.message;
+    }
+  });
+
   // Submit Expense
   $('#expense-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -721,7 +764,7 @@
     },
 
     async editExpense(id) {
-      const expense = currentExpenses.find((e) => e.id === id);
+      const expense = currentExpenses.find((e) => String(e.id) === String(id));
       if (!expense) return;
 
       $('#edit-expense-id').value = expense.id;

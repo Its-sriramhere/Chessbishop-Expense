@@ -3,19 +3,22 @@
   "version": "1.0.0",
   "description": "Full-stack expense tracking application",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test-api.js"
+    "vercel-build": "echo 'Build complete'"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "sql.js": "^1.10.3",
-    "multer": "^1.4.5-lts.1",
-    "dotenv": "^16.4.1",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "cookie-parser": "^1.4.6"
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.5.0",
+    "multer": "^1.4.5-lts.1"
   }
 }

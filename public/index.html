@@ -106,7 +106,7 @@
     <div id="view-dashboard" class="view">
       <nav class="navbar">
         <div class="nav-right">
-          <span id="nav-user" class="nav-user"></span>
+          <button id="nav-user" class="nav-user"></button>
           <button id="btn-logout" class="btn btn-outline btn-sm">Logout</button>
         </div>
         <div class="nav-brand">
@@ -357,6 +357,45 @@
             <button type="button" class="btn btn-outline modal-close">Cancel</button>
             <button type="submit" class="btn btn-primary">Save Changes</button>
           </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Account Modal -->
+    <div id="modal-account" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-content glass">
+        <div class="modal-header">
+          <h2>My Account</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="account-profile">
+          <div class="account-avatar" id="account-avatar"></div>
+          <div class="account-info">
+            <div class="account-info-row"><span class="info-label">Username</span><span class="info-value" id="account-username"></span></div>
+            <div class="account-info-row"><span class="info-label">Role</span><span class="info-value" id="account-role"></span></div>
+            <div class="account-info-row"><span class="info-label">Email</span><span class="info-value" id="account-email"></span></div>
+            <div class="account-info-row"><span class="info-label">Phone</span><span class="info-value" id="account-phone"></span></div>
+            <div class="account-info-row"><span class="info-label">Status</span><span class="info-value account-status" id="account-status"></span></div>
+          </div>
+        </div>
+        <div class="account-divider"></div>
+        <h3 class="account-section-title">Change Password</h3>
+        <form id="password-form">
+          <div class="form-group">
+            <label for="pw-current">Current Password</label>
+            <input type="password" id="pw-current" placeholder="Enter current password" required autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label for="pw-new">New Password</label>
+            <input type="password" id="pw-new" placeholder="Enter new password (min 6 chars)" required minlength="6" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="pw-confirm">Confirm New Password</label>
+            <input type="password" id="pw-confirm" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+          </div>
+          <div id="pw-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full">Update Password</button>
         </form>
       </div>
     </div>
