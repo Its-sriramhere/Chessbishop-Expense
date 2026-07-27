@@ -1137,6 +1137,13 @@ label {
   font-weight: 400;
   color: var(--text-muted);
 }
+.account-edit-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
 
 /* Password toggle */
 .pw-wrapper {

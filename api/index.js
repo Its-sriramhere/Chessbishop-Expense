@@ -99,7 +99,7 @@ app.post('/api/auth/register', upload.single('profile_image'), async (req, res) 
     if (existing) return res.status(409).json({ error: 'Username already exists' });
     const validRoles = ['COO', 'Assistant Coach', 'Head Coach', 'Intern'];
     const userRole = validRoles.includes(role) ? role : 'Intern';
-    const profileImage = req.file ? req.file.originalname : null;
+    const profileImage = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null;
     const hash = bcrypt.hashSync(password, 10);
     const user = await mongo.createUser({ username, password_hash: hash, email, phone, role: userRole, profile_image: profileImage });
     const token = generateToken(user);
@@ -129,12 +129,17 @@ app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
   }
 });
 
-app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+app.put('/api/auth/profile', authMiddleware, upload.single('profile_image'), async (req, res) => {
   try {
     const { email, phone, currentPassword, newPassword } = req.body;
     const updates = {};
     if (email !== undefined) updates.email = email;
     if (phone !== undefined) updates.phone = phone;
+    if (req.file) {
+      const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+      const mime = req.file.mimetype || `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+      updates.profile_image = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+    }
     if (currentPassword && newPassword) {
       if (newPassword.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters' });
       const user = await mongo.findUser({ _id: req.user.idNum });

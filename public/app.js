@@ -580,6 +580,13 @@
   });
 
   // Account Modal
+  function renderAvatar(container, user) {
+    if (user.profile_image && user.profile_image.startsWith('data:')) {
+      container.innerHTML = `<img src="${user.profile_image}" alt="">`;
+    } else {
+      container.innerHTML = `<span class="account-initials">${user.username.charAt(0).toUpperCase()}</span>`;
+    }
+  }
   function showAccountView() {
     $('#account-view').classList.remove('hidden');
     $('#account-edit').classList.add('hidden');
@@ -595,13 +602,13 @@
     $('#pw-current').value = '';
     $('#pw-new').value = '';
     $('#pw-confirm').value = '';
+    const preview = $('#edit-avatar-preview');
+    renderAvatar(preview, currentUser);
+    $('#edit-avatar').value = '';
   }
   function openAccountModal() {
     if (!currentUser) return;
-    const avatar = currentUser.profile_image
-      ? `<img src="${currentUser.profile_image}" alt="">`
-      : `<span class="account-initials">${currentUser.username.charAt(0).toUpperCase()}</span>`;
-    $('#account-avatar').innerHTML = avatar;
+    renderAvatar($('#account-avatar'), currentUser);
     $('#account-username').textContent = currentUser.username;
     $('#account-role').textContent = currentUser.role;
     $('#account-email').textContent = currentUser.email || 'Not set';
@@ -615,6 +622,16 @@
   $('#nav-user').addEventListener('click', openAccountModal);
   $('#btn-edit-profile').addEventListener('click', showAccountEdit);
   $('#btn-cancel-edit').addEventListener('click', showAccountView);
+
+  $('#edit-avatar').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      $('#edit-avatar-preview').innerHTML = `<img src="${ev.target.result}" alt="Preview">`;
+    };
+    reader.readAsDataURL(file);
+  });
 
   // Edit Profile
   $('#edit-profile-form').addEventListener('submit', async (e) => {
@@ -633,9 +650,24 @@
       if (newPw.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
     }
     try {
-      const body = { email, phone };
-      if (hasPassword) { body.currentPassword = currentPw; body.newPassword = newPw; }
-      const data = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify(body) });
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('phone', phone);
+      if (hasPassword) {
+        formData.append('currentPassword', currentPw);
+        formData.append('newPassword', newPw);
+      }
+      const file = $('#edit-avatar').files[0];
+      if (file) formData.append('profile_image', file);
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData,
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error('Server returned an invalid response'); }
+      if (!res.ok) throw new Error(data.error);
       currentUser = data.user;
       toast('Profile updated successfully');
       showAccountView();

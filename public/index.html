@@ -407,6 +407,11 @@
         <!-- Edit Mode -->
         <div id="account-edit" class="hidden">
           <form id="edit-profile-form">
+            <div class="account-edit-avatar">
+              <div class="avatar-preview" id="edit-avatar-preview"></div>
+              <label class="btn btn-outline btn-sm avatar-upload-btn" for="edit-avatar">Change Photo</label>
+              <input type="file" id="edit-avatar" accept="image/*" class="hidden-input">
+            </div>
             <div class="form-group">
               <label for="edit-email">Email</label>
               <input type="email" id="edit-email" placeholder="you@example.com">
