@@ -335,38 +335,17 @@
       }
     });
 
-    const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;padding:40px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#222;background:#fff';
-    container.innerHTML = `
-      <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px">
-        <h1 style="font-size:22px;margin-bottom:4px">Expense Summary</h1>
-        <p style="font-size:13px;color:#666">${isAdmin ? 'All Employees' : escapeHtml(userName)} &bull; Generated on ${dateStr}</p>
-      </div>
-      <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Total</div><div style="font-size:20px;font-weight:700;margin-top:4px">₹${total.toFixed(2)}</div></div>
-        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Expenses</div><div style="font-size:20px;font-weight:700;margin-top:4px">${expenses.length}</div></div>
-        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Approved</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#228b22">₹${approved.toFixed(2)}</div></div>
-        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Pending</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#b8860b">₹${pending.toFixed(2)}</div></div>
-        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Rejected</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#dc143c">₹${rejected.toFixed(2)}</div></div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-        <thead><tr style="border-bottom:2px solid #222">${isAdmin ? '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Date</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Employee</th>' : '<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Date</th>'}<th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Category</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Description</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Amount</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Status</th></tr></thead>
-        <tbody>${expenses.map((e) => `<tr style="border-bottom:1px solid #eee"><td style="padding:10px 12px;font-size:13px">${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td>${isAdmin ? `<td style="padding:10px 12px;font-size:13px">${escapeHtml(e.username)}</td>` : ''}<td style="padding:10px 12px;font-size:13px">${escapeHtml(e.category_name)}</td><td style="padding:10px 12px;font-size:13px">${escapeHtml(e.description)}</td><td style="padding:10px 12px;font-size:13px">₹${parseFloat(e.amount).toFixed(2)}</td><td style="padding:10px 12px;font-size:13px"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;${e.status === 'approved' ? 'background:#d4edda;color:#155724' : e.status === 'rejected' ? 'background:#f8d7da;color:#721c24' : 'background:#fff3cd;color:#856404'}">${e.status}</span></td></tr>`).join('')}</tbody>
-      </table>
-      ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
-      <div style="text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999">Chessbishop Expense Tracker &bull; Auto-generated report</div>
-    `;
-    document.body.appendChild(container);
-
-    await html2pdf().set({
-      margin: [10, 10],
-      filename: `Expense_Summary_${userName}_${dateStr}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    }).from(container).save();
-
-    container.remove();
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${userName}</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:40px}.header{text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px}.header h1{font-size:22px;margin-bottom:4px}.header p{font-size:13px;color:#666}.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}.stat-box{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.5px}.stat-box .value{font-size:20px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}tr:nth-child(even){background:#f9f9f9}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}.badge-pending{background:#fff3cd;color:#856404}.badge-approved{background:#d4edda;color:#155724}.badge-rejected{background:#f8d7da;color:#721c24}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999}@media print{body{padding:20px}}</style></head><body>
+    <div class="header"><h1>Expense Summary</h1><p>${isAdmin ? 'All Employees' : escapeHtml(userName)} &bull; Generated on ${dateStr}</p></div>
+    <div class="stats"><div class="stat-box"><div class="label">Total</div><div class="value">₹${total.toFixed(2)}</div></div><div class="stat-box"><div class="label">Expenses</div><div class="value">${expenses.length}</div></div><div class="stat-box"><div class="label">Approved</div><div class="value" style="color:#228b22">₹${approved.toFixed(2)}</div></div><div class="stat-box"><div class="label">Pending</div><div class="value" style="color:#b8860b">₹${pending.toFixed(2)}</div></div><div class="stat-box"><div class="label">Rejected</div><div class="value" style="color:#dc143c">₹${rejected.toFixed(2)}</div></div></div>
+    <table><thead><tr><th>Date</th>${isAdmin ? '<th>Employee</th>' : ''}<th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td>${isAdmin ? `<td>${escapeHtml(e.username)}</td>` : ''}<td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
+    ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
+    <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
+    <script>window.onload=()=>window.print()<\/script></body></html>`;
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
   }
 
   // Welcome → Login
@@ -775,38 +754,17 @@
           }
         });
 
-        const container = document.createElement('div');
-        container.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;padding:40px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#222;background:#fff';
-        container.innerHTML = `
-          <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px">
-            <h1 style="font-size:22px;margin-bottom:4px">Expense Summary</h1>
-            <p style="font-size:13px;color:#666">${escapeHtml(username)} &bull; Generated on ${dateStr}</p>
-          </div>
-          <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-            <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Total</div><div style="font-size:20px;font-weight:700;margin-top:4px">₹${total.toFixed(2)}</div></div>
-            <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Expenses</div><div style="font-size:20px;font-weight:700;margin-top:4px">${expenses.length}</div></div>
-            <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Approved</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#228b22">₹${approved.toFixed(2)}</div></div>
-            <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Pending</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#b8860b">₹${pending.toFixed(2)}</div></div>
-            <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Rejected</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#dc143c">₹${rejected.toFixed(2)}</div></div>
-          </div>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-            <thead><tr style="border-bottom:2px solid #222"><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Date</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Category</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Description</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Amount</th><th style="text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888">Status</th></tr></thead>
-            <tbody>${expenses.map((e) => `<tr style="border-bottom:1px solid #eee"><td style="padding:10px 12px;font-size:13px">${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td style="padding:10px 12px;font-size:13px">${escapeHtml(e.category_name)}</td><td style="padding:10px 12px;font-size:13px">${escapeHtml(e.description)}</td><td style="padding:10px 12px;font-size:13px">₹${parseFloat(e.amount).toFixed(2)}</td><td style="padding:10px 12px;font-size:13px"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;${e.status === 'approved' ? 'background:#d4edda;color:#155724' : e.status === 'rejected' ? 'background:#f8d7da;color:#721c24' : 'background:#fff3cd;color:#856404'}">${e.status}</span></td></tr>`).join('')}</tbody>
-          </table>
-          ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
-          <div style="text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999">Chessbishop Expense Tracker &bull; Auto-generated report</div>
-        `;
-        document.body.appendChild(container);
-
-        await html2pdf().set({
-          margin: [10, 10],
-          filename: `Expense_Summary_${username}_${dateStr}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        }).from(container).save();
-
-        container.remove();
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${username}</title>
+        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:40px}.header{text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px}.header h1{font-size:22px;margin-bottom:4px}.header p{font-size:13px;color:#666}.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}.stat-box{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.5px}.stat-box .value{font-size:20px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}tr:nth-child(even){background:#f9f9f9}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}.badge-pending{background:#fff3cd;color:#856404}.badge-approved{background:#d4edda;color:#155724}.badge-rejected{background:#f8d7da;color:#721c24}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999}@media print{body{padding:20px}}</style></head><body>
+        <div class="header"><h1>Expense Summary</h1><p>${escapeHtml(username)} &bull; Generated on ${dateStr}</p></div>
+        <div class="stats"><div class="stat-box"><div class="label">Total</div><div class="value">₹${total.toFixed(2)}</div></div><div class="stat-box"><div class="label">Expenses</div><div class="value">${expenses.length}</div></div><div class="stat-box"><div class="label">Approved</div><div class="value" style="color:#228b22">₹${approved.toFixed(2)}</div></div><div class="stat-box"><div class="label">Pending</div><div class="value" style="color:#b8860b">₹${pending.toFixed(2)}</div></div><div class="stat-box"><div class="label">Rejected</div><div class="value" style="color:#dc143c">₹${rejected.toFixed(2)}</div></div></div>
+        <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
+        ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
+        <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
+        <script>window.onload=()=>window.print()<\/script></body></html>`;
+        const win = window.open('', '_blank');
+        win.document.write(html);
+        win.document.close();
       } catch (err) {
         toast(err.message, 'error');
       }
