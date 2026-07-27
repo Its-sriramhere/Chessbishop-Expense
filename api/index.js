@@ -181,9 +181,9 @@ app.post('/api/admin/categories', authMiddleware, adminOnly, async (req, res) =>
 app.get('/api/expenses', authMiddleware, async (req, res) => {
   try {
     const { status, category_id, start_date, end_date } = req.query;
-    const filter = { user_id: parseInt(req.user.id) || req.user.id };
+    const filter = { user_id: req.user.id };
     if (status) filter.status = status;
-    if (category_id) filter.category_id = parseInt(category_id);
+    if (category_id) filter.category_id = category_id;
     if (start_date || end_date) {
       filter.created_at = {};
       if (start_date) filter.created_at.$gte = new Date(start_date);
@@ -202,12 +202,8 @@ app.post('/api/expenses', authMiddleware, (req, res) => {
     const { amount, description, category_id, expense_date } = req.body;
     if (!amount || !description || !category_id) return res.status(400).json({ error: 'Amount, description, and category are required' });
     if (parseFloat(amount) <= 0) return res.status(400).json({ error: 'Amount must be positive' });
-    const catId = parseInt(category_id);
     const category = await mongo.findCategory({ _id: mongo.toObjectId(category_id) });
-    if (!category) {
-      const catById = await mongo.findCategory({ _id: mongo.toObjectId(category_id) });
-      if (!catById) return res.status(400).json({ error: 'Invalid category' });
-    }
+    if (!category) return res.status(400).json({ error: 'Invalid category' });
     try {
       let receiptId = null;
       let receiptFilename = null;
@@ -217,8 +213,8 @@ app.post('/api/expenses', authMiddleware, (req, res) => {
         receiptId = uploaded.id;
       }
       const expense = await mongo.insertExpense({
-        user_id: parseInt(req.user.id) || req.user.id,
-        category_id: catId,
+        user_id: req.user.id,
+        category_id: category_id,
         category_name: category ? category.name : '',
         username: req.user.username,
         amount, description,
@@ -240,14 +236,14 @@ app.put('/api/expenses/:id', authMiddleware, async (req, res) => {
     const expense = await mongo.findOneExpense({ _id: mongo.toObjectId(req.params.id) });
     if (!expense) return res.status(404).json({ error: 'Expense not found' });
     const isAdmin = req.user.role === 'admin';
-    if (expense.user_id !== (parseInt(req.user.id) || req.user.id) && !isAdmin) return res.status(403).json({ error: 'Not authorized' });
+    if (expense.user_id !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Not authorized' });
     const updates = {};
     if (amount) updates.amount = parseFloat(amount);
     if (description) updates.description = description;
     if (category_id) {
       const cat = await mongo.findCategory({ _id: mongo.toObjectId(category_id) });
       if (!cat) return res.status(400).json({ error: 'Invalid category' });
-      updates.category_id = parseInt(category_id);
+      updates.category_id = category_id;
       updates.category_name = cat.name;
     }
     if (expense_date) updates.expense_date = expense_date;
@@ -263,7 +259,7 @@ app.delete('/api/expenses/:id', authMiddleware, async (req, res) => {
     const expense = await mongo.findOneExpense({ _id: mongo.toObjectId(req.params.id) });
     if (!expense) return res.status(404).json({ error: 'Expense not found' });
     const isAdmin = req.user.role === 'admin';
-    if (expense.user_id !== (parseInt(req.user.id) || req.user.id) && !isAdmin) return res.status(403).json({ error: 'Not authorized' });
+    if (expense.user_id !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Not authorized' });
     if (expense.receipt_id) await mongo.deleteReceipt(expense.receipt_id);
     await mongo.deleteExpense(req.params.id);
     res.json({ message: 'Expense deleted' });
@@ -279,7 +275,7 @@ app.get('/api/admin/expenses', authMiddleware, adminOnly, async (req, res) => {
     const { status, category_id, user_id, start_date, end_date } = req.query;
     const filter = {};
     if (status) filter.status = status;
-    if (category_id) filter.category_id = parseInt(category_id);
+    if (category_id) filter.category_id = category_id;
     if (user_id) filter.user_id = user_id;
     if (start_date || end_date) {
       filter.created_at = {};
@@ -331,7 +327,7 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, async (req, res) => {
 });
 
 app.get('/api/my-stats', authMiddleware, async (req, res) => {
-  try { res.json(await mongo.getMyStats(parseInt(req.user.id) || req.user.id)); } catch { res.status(500).json({ error: 'Failed to fetch stats' }); }
+  try { res.json(await mongo.getMyStatsreq.user.id); } catch { res.status(500).json({ error: 'Failed to fetch stats' }); }
 });
 
 // ---- Users ----

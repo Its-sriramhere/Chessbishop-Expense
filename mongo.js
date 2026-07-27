@@ -144,6 +144,7 @@ async function insertExpense(doc) {
     username: doc.username || '',
     amount: parseFloat(doc.amount),
     description: doc.description,
+    expense_date: doc.expense_date || new Date().toISOString().slice(0, 10),
     status: 'pending',
     receipt_filename: doc.receipt_filename || null,
     receipt_id: doc.receipt_id || null,
@@ -236,9 +237,8 @@ async function getAdminStats() {
 }
 
 async function getMyStats(userId) {
-  const uid = typeof userId === 'number' ? userId : parseInt(userId);
   const result = await cachedDb.collection('expenses').aggregate([
-    { $match: { user_id: uid } },
+    { $match: { user_id: userId } },
     { $facet: {
       total: [{ $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } }],
       pending: [{ $match: { status: 'pending' } }, { $group: { _id: null, count: { $sum: 1 } } }],

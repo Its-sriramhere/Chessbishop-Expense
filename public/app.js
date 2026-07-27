@@ -162,7 +162,7 @@
             </div>
             <div class="branch-employees">
               ${emps.map((emp) => `
-                <div class="employee-card glass${employeeFilter === emp.id ? ' active' : ''}" data-user-id="${emp.id}" onclick="window.app.filterByEmployee(${emp.id}, '${escapeHtml(emp.username).replace(/'/g, "\\'")}')">
+                <div class="employee-card glass${employeeFilter === emp.id ? ' active' : ''}" data-user-id="${emp.id}" onclick="window.app.filterByEmployee('${emp.id}', '${escapeHtml(emp.username).replace(/'/g, "\\'")}')">
                   <div class="emp-card-top">
                     <span class="emp-name">${escapeHtml(emp.username)}</span>
                     <span class="emp-count">${emp.expense_count} expense${emp.expense_count !== 1 ? 's' : ''}</span>
@@ -172,7 +172,7 @@
                     ${emp.pending_count > 0 ? `<span class="emp-pending">${emp.pending_count} pending</span>` : ''}
                     ${emp.approved_count > 0 ? `<span class="emp-approved">${emp.approved_count} approved</span>` : ''}
                   </div>
-                  ${emp.expense_count > 0 ? `<button class="btn-emp-download" onclick="event.stopPropagation(); window.app.downloadEmployeeSummary(${emp.id}, '${escapeHtml(emp.username).replace(/'/g, "\\'")}')">
+                  ${emp.expense_count > 0 ? `<button class="btn-emp-download" onclick="event.stopPropagation(); window.app.downloadEmployeeSummary('${emp.id}', '${escapeHtml(emp.username).replace(/'/g, "\\'")}')">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M4 8l4 4 4-4M3 13h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     Summary
                   </button>` : ''}
@@ -258,7 +258,7 @@
         (e) => `
       <tr>
         <td>${e.expense_date || new Date(e.created_at).toLocaleDateString()}</td>
-        ${isAdmin ? `<td><button class="employee-link" onclick="window.app.filterByEmployee(${e.user_id}, '${escapeHtml(e.username).replace(/'/g, "\\'")}')">${escapeHtml(e.username)}</button></td>` : ''}
+        ${isAdmin ? `<td><button class="employee-link" onclick="window.app.filterByEmployee('${e.user_id}', '${escapeHtml(e.username).replace(/'/g, "\\'")}')">${escapeHtml(e.username)}</button></td>` : ''}
         <td>${e.category_name}</td>
         <td>${escapeHtml(e.description)}</td>
         <td>₹${parseFloat(e.amount).toFixed(2)}</td>
@@ -778,7 +778,7 @@
       $('#employee-filter-name').textContent = name;
       $('#employee-filter-bar').classList.remove('hidden');
       $$('.employee-card').forEach((c) => {
-        c.classList.toggle('active', parseInt(c.dataset.userId) === userId);
+        c.classList.toggle('active', c.dataset.userId === userId);
       });
       loadExpenses();
     },
