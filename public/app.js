@@ -328,11 +328,8 @@
     receiptExpenses.forEach((e) => {
       const dataUrl = receiptDataUrls[e.id];
       if (!dataUrl) return;
-      if (e.receipt_path.match(/\.(jpg|jpeg|png|gif)$/i)) {
-        receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div><img src="${dataUrl}" style="max-width:100%;max-height:300px;border:1px solid #ddd;border-radius:4px" /></div>`;
-      } else {
-        receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div><iframe src="${dataUrl}" style="width:100%;height:400px;border:1px solid #ddd;border-radius:4px"></iframe></div>`;
-      }
+      const isImage = dataUrl.startsWith('data:image');
+      receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div>${isImage ? `<img src="${dataUrl}" style="max-width:100%;max-height:300px;border:1px solid #ddd;border-radius:4px" />` : `<iframe src="${dataUrl}" style="width:100%;height:400px;border:1px solid #ddd;border-radius:4px"></iframe>`}</div>`;
     });
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${userName}</title>
@@ -747,11 +744,8 @@
         receiptExpenses.forEach((e) => {
           const dataUrl = receiptDataUrls[e.id];
           if (!dataUrl) return;
-          if (e.receipt_path.match(/\.(jpg|jpeg|png|gif)$/i)) {
-            receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div><img src="${dataUrl}" style="max-width:100%;max-height:300px;border:1px solid #ddd;border-radius:4px" /></div>`;
-          } else {
-            receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div><iframe src="${dataUrl}" style="width:100%;height:400px;border:1px solid #ddd;border-radius:4px"></iframe></div>`;
-          }
+          const isImage = dataUrl.startsWith('data:image');
+          receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div>${isImage ? `<img src="${dataUrl}" style="max-width:100%;max-height:300px;border:1px solid #ddd;border-radius:4px" />` : `<iframe src="${dataUrl}" style="width:100%;height:400px;border:1px solid #ddd;border-radius:4px"></iframe>`}</div>`;
         });
 
         const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${username}</title>
