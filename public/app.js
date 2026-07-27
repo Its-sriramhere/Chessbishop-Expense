@@ -292,7 +292,22 @@
     return div.innerHTML;
   }
 
-  function downloadSummary() {
+  async function fetchReceiptDataUrl(path) {
+    try {
+      const res = await fetch(path, { credentials: 'include' });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const mime = blob.type || 'image/jpeg';
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  }
+
+  async function downloadSummary() {
     const expenses = currentExpenses;
     const isAdmin = currentUser.role === 'admin';
     const userName = currentUser.username;
@@ -304,13 +319,19 @@
     const pending = expenses.filter((e) => e.status === 'pending').reduce((s, e) => s + parseFloat(e.amount), 0);
     const rejected = expenses.filter((e) => e.status === 'rejected').reduce((s, e) => s + parseFloat(e.amount), 0);
 
+    const receiptExpenses = expenses.filter((e) => e.receipt_path && e.receipt_path.match(/\.(jpg|jpeg|png|gif)$/i));
+    const receiptDataUrls = {};
+    await Promise.all(receiptExpenses.map(async (e) => {
+      receiptDataUrls[e.id] = await fetchReceiptDataUrl(e.receipt_path);
+    }));
     let receiptImages = '';
-    expenses.forEach((e) => {
-      if (e.receipt_path && e.receipt_path.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    receiptExpenses.forEach((e) => {
+      const dataUrl = receiptDataUrls[e.id];
+      if (dataUrl) {
         receiptImages += `
           <div style="margin-top:8px;font-size:12px;color:#555">
             <strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})
-            <br><img src="${e.receipt_path}" style="max-width:400px;max-height:250px;margin-top:4px;border:1px solid #ddd;border-radius:4px;" />
+            <br><img src="${dataUrl}" style="max-width:400px;max-height:250px;margin-top:4px;border:1px solid #ddd;border-radius:4px;" />
           </div>`;
       }
     });
@@ -801,11 +822,29 @@
         const rejected = expenses.filter((e) => e.status === 'rejected').reduce((s, e) => s + parseFloat(e.amount), 0);
         const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
+        const receiptExpenses = expenses.filter((e) => e.receipt_path && e.receipt_path.match(/\.(jpg|jpeg|png|gif|pdf)$/i));
+        const receiptDataUrls = {};
+        await Promise.all(receiptExpenses.map(async (e) => {
+          receiptDataUrls[e.id] = await fetchReceiptDataUrl(e.receipt_path);
+        }));
+        let receiptImages = '';
+        receiptExpenses.forEach((e) => {
+          const dataUrl = receiptDataUrls[e.id];
+          if (dataUrl) {
+            if (e.receipt_path.match(/\.(jpg|jpeg|png|gif)$/i)) {
+              receiptImages += `<div style="margin-top:8px;font-size:12px;color:#555"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})<br><img src="${dataUrl}" style="max-width:400px;max-height:250px;margin-top:4px;border:1px solid #ddd;border-radius:4px;" /></div>`;
+            } else {
+              receiptImages += `<div style="margin-top:8px;font-size:12px;color:#555"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})<br><a href="${dataUrl}" target="_blank">View Receipt (PDF)</a></div>`;
+            }
+          }
+        });
+
         const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${username}</title>
         <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:40px}.header{text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px}.header h1{font-size:22px;margin-bottom:4px}.header p{font-size:13px;color:#666}.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}.stat-box{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.5px}.stat-box .value{font-size:20px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}tr:nth-child(even){background:#f9f9f9}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}.badge-pending{background:#fff3cd;color:#856404}.badge-approved{background:#d4edda;color:#155724}.badge-rejected{background:#f8d7da;color:#721c24}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999}@media print{body{padding:20px}}</style></head><body>
         <div class="header"><h1>Expense Summary</h1><p>${escapeHtml(username)} &bull; Generated on ${dateStr}</p></div>
         <div class="stats"><div class="stat-box"><div class="label">Total</div><div class="value">₹${total.toFixed(2)}</div></div><div class="stat-box"><div class="label">Expenses</div><div class="value">${expenses.length}</div></div><div class="stat-box"><div class="label">Approved</div><div class="value" style="color:#228b22">₹${approved.toFixed(2)}</div></div><div class="stat-box"><div class="label">Pending</div><div class="value" style="color:#b8860b">₹${pending.toFixed(2)}</div></div><div class="stat-box"><div class="label">Rejected</div><div class="value" style="color:#dc143c">₹${rejected.toFixed(2)}</div></div></div>
         <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
+        ${receiptImages ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptImages}</div>` : ''}
         <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
         <script>window.onload=()=>window.print()<\/script></body></html>`;
         const win = window.open('', '_blank');
