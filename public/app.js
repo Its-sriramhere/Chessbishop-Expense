@@ -307,7 +307,14 @@
     } catch { return null; }
   }
 
+  let downloadingSummary = false;
+
   async function downloadSummary() {
+    if (downloadingSummary) return;
+    downloadingSummary = true;
+    const btn = $('#btn-download-summary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+    try {
     const expenses = currentExpenses;
     const isAdmin = currentUser.role === 'admin';
     const userName = currentUser.username;
@@ -339,10 +346,20 @@
     <table><thead><tr><th>Date</th>${isAdmin ? '<th>Employee</th>' : ''}<th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td>${isAdmin ? `<td>${escapeHtml(e.username)}</td>` : ''}<td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
     ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
     <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
-    <script>window.onload=()=>window.print()<\/script></body></html>`;
+    <script>var printed=false;window.onafterprint=function(){window.close()};setTimeout(function(){if(!printed){printed=true;window.print()}},500)<\/script></body></html>`;
     const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    } else {
+      toast('Popup blocked. Please allow popups for this site.', 'error');
+    }
+    } catch (err) {
+      toast('Failed to generate summary', 'error');
+    } finally {
+      downloadingSummary = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Download Summary'; }
+    }
   }
 
   // Welcome → Login
@@ -725,6 +742,8 @@
     },
 
     async downloadEmployeeSummary(userId, username) {
+      if (downloadingSummary) return;
+      downloadingSummary = true;
       try {
         const expenses = await api(`/api/admin/expenses?user_id=${userId}`);
         if (!expenses.length) { toast('No expenses found for this employee', 'error'); return; }
@@ -755,12 +774,18 @@
         <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
         ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
         <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
-        <script>window.onload=()=>window.print()<\/script></body></html>`;
+        <script>var printed=false;window.onafterprint=function(){window.close()};setTimeout(function(){if(!printed){printed=true;window.print()}},500)<\/script></body></html>`;
         const win = window.open('', '_blank');
-        win.document.write(html);
-        win.document.close();
+        if (win) {
+          win.document.write(html);
+          win.document.close();
+        } else {
+          toast('Popup blocked. Please allow popups for this site.', 'error');
+        }
       } catch (err) {
         toast(err.message, 'error');
+      } finally {
+        downloadingSummary = false;
       }
     },
 
@@ -769,7 +794,8 @@
       preview.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">Loading receipt...</p>';
       const dataUrl = await fetchReceiptDataUrl(path);
       if (dataUrl) {
-        if (path.match(/\.(jpg|jpeg|png|gif)$/i)) {
+        const isImage = dataUrl.startsWith('data:image');
+        if (isImage) {
           preview.innerHTML = `<img src="${dataUrl}" alt="Receipt" style="max-width:100%;border-radius:8px">`;
         } else {
           preview.innerHTML = `<iframe src="${dataUrl}" style="width:100%;height:70vh;border:none;border-radius:8px"></iframe>`;

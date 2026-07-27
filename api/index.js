@@ -306,15 +306,23 @@ app.put('/api/admin/expenses/:id', authMiddleware, adminOnly, async (req, res) =
 
 app.get('/api/receipts/:fileId', authMiddleware, async (req, res) => {
   try {
-    const stream = await mongo.downloadReceipt(req.params.fileId);
-    if (!stream) return res.status(404).json({ error: 'Receipt not found' });
+    const oid = mongo.toObjectId(req.params.fileId);
+    if (!oid) return res.status(404).json({ error: 'Invalid receipt ID' });
     const db = mongo.getDb();
-    const file = await db.collection('receipts.files').findOne({ _id: mongo.toObjectId(req.params.fileId) });
-    if (file) {
-      res.set('Content-Type', file.contentType || 'application/octet-stream');
-      res.set('Content-Disposition', `inline; filename="${file.filename}"`);
-    }
-    stream.pipe(res);
+    const file = await db.collection('receipts.files').findOne({ _id: oid });
+    if (!file) return res.status(404).json({ error: 'Receipt not found' });
+    const stream = mongo.downloadReceipt(req.params.fileId);
+    if (!stream) return res.status(404).json({ error: 'Receipt not found' });
+    const chunks = [];
+    await new Promise((resolve, reject) => {
+      stream.on('data', (chunk) => chunks.push(chunk));
+      stream.on('end', resolve);
+      stream.on('error', reject);
+    });
+    const buffer = Buffer.concat(chunks);
+    res.set('Content-Type', file.contentType || 'application/octet-stream');
+    res.set('Content-Length', buffer.length);
+    res.send(buffer);
   } catch (err) {
     res.status(404).json({ error: 'Receipt not found' });
   }
@@ -327,7 +335,7 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, async (req, res) => {
 });
 
 app.get('/api/my-stats', authMiddleware, async (req, res) => {
-  try { res.json(await mongo.getMyStatsreq.user.id); } catch { res.status(500).json({ error: 'Failed to fetch stats' }); }
+  try { res.json(await mongo.getMyStats(req.user.id)); } catch { res.status(500).json({ error: 'Failed to fetch stats' }); }
 });
 
 // ---- Users ----
