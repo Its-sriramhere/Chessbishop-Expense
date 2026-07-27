@@ -67,6 +67,7 @@ function formatExpense(e) {
     username: e.username || '',
     amount: e.amount,
     description: e.description,
+    expense_date: e.expense_date || '',
     status: e.status,
     receipt_path: e.receipt_id ? `/api/receipts/${e.receipt_id}` : (e.receipt_path || null),
     receipt_id: e.receipt_id ? e.receipt_id.toString() : null,
@@ -198,7 +199,7 @@ app.get('/api/expenses', authMiddleware, async (req, res) => {
 app.post('/api/expenses', authMiddleware, (req, res) => {
   upload.single('receipt')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    const { amount, description, category_id } = req.body;
+    const { amount, description, category_id, expense_date } = req.body;
     if (!amount || !description || !category_id) return res.status(400).json({ error: 'Amount, description, and category are required' });
     if (parseFloat(amount) <= 0) return res.status(400).json({ error: 'Amount must be positive' });
     const catId = parseInt(category_id);
@@ -221,6 +222,7 @@ app.post('/api/expenses', authMiddleware, (req, res) => {
         category_name: category ? category.name : '',
         username: req.user.username,
         amount, description,
+        expense_date: expense_date || new Date().toISOString().slice(0, 10),
         receipt_filename: receiptFilename,
         receipt_id: receiptId,
       });
@@ -233,13 +235,12 @@ app.post('/api/expenses', authMiddleware, (req, res) => {
 
 app.put('/api/expenses/:id', authMiddleware, async (req, res) => {
   try {
-    const { amount, description, category_id } = req.body;
-    if (!amount && !description && !category_id) return res.status(400).json({ error: 'At least one field to update is required' });
+    const { amount, description, category_id, expense_date } = req.body;
+    if (!amount && !description && !category_id && !expense_date) return res.status(400).json({ error: 'At least one field to update is required' });
     const expense = await mongo.findOneExpense({ _id: mongo.toObjectId(req.params.id) });
     if (!expense) return res.status(404).json({ error: 'Expense not found' });
     const isAdmin = req.user.role === 'admin';
     if (expense.user_id !== (parseInt(req.user.id) || req.user.id) && !isAdmin) return res.status(403).json({ error: 'Not authorized' });
-    if (!isAdmin && expense.status !== 'pending') return res.status(400).json({ error: 'Only pending expenses can be edited' });
     const updates = {};
     if (amount) updates.amount = parseFloat(amount);
     if (description) updates.description = description;
@@ -249,6 +250,7 @@ app.put('/api/expenses/:id', authMiddleware, async (req, res) => {
       updates.category_id = parseInt(category_id);
       updates.category_name = cat.name;
     }
+    if (expense_date) updates.expense_date = expense_date;
     const updated = await mongo.updateExpense(req.params.id, updates);
     res.json(formatExpense(updated));
   } catch (err) {
@@ -278,7 +280,7 @@ app.get('/api/admin/expenses', authMiddleware, adminOnly, async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
     if (category_id) filter.category_id = parseInt(category_id);
-    if (user_id) filter.user_id = parseInt(user_id);
+    if (user_id) filter.user_id = user_id;
     if (start_date || end_date) {
       filter.created_at = {};
       if (start_date) filter.created_at.$gte = new Date(start_date);

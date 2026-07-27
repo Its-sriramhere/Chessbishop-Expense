@@ -19,6 +19,9 @@
       $('#expense-form').reset();
       $('#expense-error').textContent = '';
       $('#file-name-display').classList.add('hidden');
+      if (!$('#exp-date').value) {
+        $('#exp-date').value = new Date().toISOString().slice(0, 10);
+      }
       loadCategories();
     }
 
@@ -254,7 +257,7 @@
       .map(
         (e) => `
       <tr>
-        <td>${new Date(e.created_at).toLocaleDateString()}</td>
+        <td>${e.expense_date || new Date(e.created_at).toLocaleDateString()}</td>
         ${isAdmin ? `<td><button class="employee-link" onclick="window.app.filterByEmployee(${e.user_id}, '${escapeHtml(e.username).replace(/'/g, "\\'")}')">${escapeHtml(e.username)}</button></td>` : ''}
         <td>${e.category_name}</td>
         <td>${escapeHtml(e.description)}</td>
@@ -274,9 +277,7 @@
             ${isAdmin && e.status !== 'pending' ? `
               <button class="btn-revert" onclick="window.app.updateExpense('${e.id}', 'pending')">Revert</button>
             ` : ''}
-            ${isAdmin || (!isAdmin && e.status === 'pending') ? `
-              <button class="btn-edit" onclick="window.app.editExpense('${e.id}')">Edit</button>
-            ` : ''}
+            <button class="btn-edit" onclick="window.app.editExpense('${e.id}')">Edit</button>
             <button class="btn-delete" onclick="window.app.confirmDelete('${e.id}', '${escapeHtml(e.description).replace(/'/g, "\\'")}')">Delete</button>
           </div>
         </td>
@@ -386,7 +387,7 @@
     <tbody>
       ${expenses.map((e) => `
         <tr>
-          <td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td>
+          <td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td>
           ${isAdmin ? `<td>${escapeHtml(e.username)}</td>` : ''}
           <td>${escapeHtml(e.category_name)}</td>
           <td>${escapeHtml(e.description)}</td>
@@ -698,6 +699,7 @@
     formData.append('amount', $('#exp-amount').value);
     formData.append('category_id', $('#exp-category').value);
     formData.append('description', $('#exp-description').value);
+    formData.append('expense_date', $('#exp-date').value);
     const file = fileInput.files[0];
     if (file) formData.append('receipt', file);
 
@@ -714,7 +716,7 @@
 
       toast('Expense submitted successfully!');
       loadExpenses();
-      if (currentUser.role === 'admin') loadStats();
+      if (currentUser.role === 'admin') { loadStats(); loadEmployeeBranches(); }
       showView('view-dashboard');
     } catch (err) {
       errEl.textContent = err.message;
@@ -754,12 +756,13 @@
           amount: $('#edit-exp-amount').value,
           category_id: $('#edit-exp-category').value,
           description: $('#edit-exp-description').value,
+          expense_date: $('#edit-exp-date').value,
         }),
       });
       $('#modal-edit-expense').classList.remove('active');
       toast('Expense updated!');
       loadExpenses();
-      if (currentUser.role === 'admin') loadStats();
+      if (currentUser.role === 'admin') { loadStats(); loadEmployeeBranches(); }
     } catch (err) {
       errEl.textContent = err.message;
     }
@@ -802,7 +805,7 @@
         <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:40px}.header{text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px}.header h1{font-size:22px;margin-bottom:4px}.header p{font-size:13px;color:#666}.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}.stat-box{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.5px}.stat-box .value{font-size:20px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}tr:nth-child(even){background:#f9f9f9}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}.badge-pending{background:#fff3cd;color:#856404}.badge-approved{background:#d4edda;color:#155724}.badge-rejected{background:#f8d7da;color:#721c24}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999}@media print{body{padding:20px}}</style></head><body>
         <div class="header"><h1>Expense Summary</h1><p>${escapeHtml(username)} &bull; Generated on ${dateStr}</p></div>
         <div class="stats"><div class="stat-box"><div class="label">Total</div><div class="value">₹${total.toFixed(2)}</div></div><div class="stat-box"><div class="label">Expenses</div><div class="value">${expenses.length}</div></div><div class="stat-box"><div class="label">Approved</div><div class="value" style="color:#228b22">₹${approved.toFixed(2)}</div></div><div class="stat-box"><div class="label">Pending</div><div class="value" style="color:#b8860b">₹${pending.toFixed(2)}</div></div><div class="stat-box"><div class="label">Rejected</div><div class="value" style="color:#dc143c">₹${rejected.toFixed(2)}</div></div></div>
-        <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td><td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
+        <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
         <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
         <script>window.onload=()=>window.print()<\/script></body></html>`;
         const win = window.open('', '_blank');
@@ -847,6 +850,7 @@
       $('#edit-expense-id').value = expense.id;
       $('#edit-exp-amount').value = expense.amount;
       $('#edit-exp-description').value = expense.description;
+      $('#edit-exp-date').value = expense.expense_date || expense.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10);
 
       await loadCategories();
       const catSelect = $('#edit-exp-category');
@@ -877,7 +881,7 @@
           await api(`/api/expenses/${id}`, { method: 'DELETE' });
           toast('Expense deleted!');
           loadExpenses();
-          if (currentUser.role === 'admin') loadStats();
+          if (currentUser.role === 'admin') { loadStats(); loadEmployeeBranches(); }
         } catch (err) {
           toast(err.message, 'error');
         }
