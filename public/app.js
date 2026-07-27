@@ -41,7 +41,9 @@
       headers: { 'Content-Type': 'application/json', ...options.headers },
       ...options,
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('Server returned an invalid response'); }
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
   }
@@ -448,6 +450,11 @@
     $('#login-card').classList.remove('hidden');
     $('#login-error').textContent = '';
   });
+  $('#signup-back').addEventListener('click', () => {
+    $('#signup-card').classList.add('hidden');
+    $('#login-card').classList.remove('hidden');
+    $('#login-error').textContent = '';
+  });
 
   // Avatar preview
   $('#signup-avatar').addEventListener('change', (e) => {
@@ -476,7 +483,9 @@
       if (file) formData.append('profile_image', file);
 
       const res = await fetch('/api/auth/register', { method: 'POST', body: formData, credentials: 'include' });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error('Server returned an invalid response'); }
       if (!res.ok) throw new Error(data.error || 'Signup failed');
       currentUser = data.user;
       await loadCategories();
@@ -579,34 +588,41 @@
     $('#account-avatar').innerHTML = avatar;
     $('#account-username').textContent = currentUser.username;
     $('#account-role').textContent = currentUser.role;
-    $('#account-email').textContent = currentUser.email || 'Not set';
-    $('#account-phone').textContent = currentUser.phone || 'Not set';
     const statusEl = $('#account-status');
     statusEl.textContent = currentUser.status || 'active';
     statusEl.className = 'info-value account-status ' + (currentUser.status || 'active');
-    $('#password-form').reset();
+    $('#edit-email').value = currentUser.email || '';
+    $('#edit-phone').value = currentUser.phone || '';
+    $('#pw-current').value = '';
+    $('#pw-new').value = '';
+    $('#pw-confirm').value = '';
     $('#pw-error').textContent = '';
     $('#modal-account').classList.add('active');
   }
   $('#nav-user').addEventListener('click', openAccountModal);
 
-  // Password Change
-  $('#password-form').addEventListener('submit', async (e) => {
+  // Edit Profile
+  $('#edit-profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errEl = $('#pw-error');
     errEl.textContent = '';
-    const current = $('#pw-current').value;
+    const email = $('#edit-email').value.trim();
+    const phone = $('#edit-phone').value.trim();
+    const currentPw = $('#pw-current').value;
     const newPw = $('#pw-new').value;
-    const confirm = $('#pw-confirm').value;
-    if (newPw !== confirm) { errEl.textContent = 'New passwords do not match'; return; }
-    if (newPw.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
+    const confirmPw = $('#pw-confirm').value;
+    const hasPassword = currentPw || newPw || confirmPw;
+    if (hasPassword) {
+      if (!currentPw) { errEl.textContent = 'Current password is required to change password'; return; }
+      if (newPw !== confirmPw) { errEl.textContent = 'New passwords do not match'; return; }
+      if (newPw.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
+    }
     try {
-      await api('/api/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ currentPassword: current, newPassword: newPw }),
-      });
-      toast('Password updated successfully');
-      $('#password-form').reset();
+      const body = { email, phone };
+      if (hasPassword) { body.currentPassword = currentPw; body.newPassword = newPw; }
+      const data = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify(body) });
+      currentUser = data.user;
+      toast('Profile updated successfully');
       setTimeout(() => $('#modal-account').classList.remove('active'), 800);
     } catch (err) {
       errEl.textContent = err.message;
@@ -643,7 +659,9 @@
         credentials: 'include',
         body: formData,
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error('Server returned an invalid response'); }
       if (!res.ok) throw new Error(data.error);
 
       toast('Expense submitted successfully!');

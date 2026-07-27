@@ -101,6 +101,13 @@ async function updateUserPassword(id, hash) {
   return cachedDb.collection('users').updateOne({ _id: oid }, { $set: { password_hash: hash } });
 }
 
+async function updateUserProfile(id, updates) {
+  const oid = toObjectId(id);
+  if (!oid) return null;
+  await cachedDb.collection('users').updateOne({ _id: oid }, { $set: updates });
+  return cachedDb.collection('users').findOne({ _id: oid }, { projection: { password_hash: 0 } });
+}
+
 // ---- Categories ----
 
 async function findCategories() {
@@ -276,7 +283,7 @@ async function getEmployeesSummary() {
 
 module.exports = {
   connectMongo, getDb, toObjectId,
-  findUser, findUserById, findAllUsers, findEmployees, createUser, updateUserPassword,
+  findUser, findUserById, findAllUsers, findEmployees, createUser, updateUserPassword, updateUserProfile,
   findCategories, findCategory, createCategory,
   findExpenses, findOneExpense, insertExpense, updateExpense, deleteExpense,
   uploadReceipt, downloadReceipt, deleteReceipt,

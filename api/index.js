@@ -91,19 +91,23 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/register', upload.single('profile_image'), async (req, res) => {
-  await ensureDb();
-  const { username, password, role, email, phone } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
-  const existing = await mongo.findUser({ username });
-  if (existing) return res.status(409).json({ error: 'Username already exists' });
-  const validRoles = ['COO', 'Assistant Coach', 'Head Coach', 'Intern'];
-  const userRole = validRoles.includes(role) ? role : 'Intern';
-  const profileImage = req.file ? req.file.originalname : null;
-  const hash = bcrypt.hashSync(password, 10);
-  const user = await mongo.createUser({ username, password_hash: hash, email, phone, role: userRole, profile_image: profileImage });
-  const token = generateToken(user);
-  res.cookie('token', token, { httpOnly: true, signed: true, maxAge: 86400000, sameSite: 'lax' });
-  res.status(201).json({ user: { id: user._id.toString(), username: user.username, role: user.role, profile_image: user.profile_image, status: 'active' } });
+  try {
+    await ensureDb();
+    const { username, password, role, email, phone } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+    const existing = await mongo.findUser({ username });
+    if (existing) return res.status(409).json({ error: 'Username already exists' });
+    const validRoles = ['COO', 'Assistant Coach', 'Head Coach', 'Intern'];
+    const userRole = validRoles.includes(role) ? role : 'Intern';
+    const profileImage = req.file ? req.file.originalname : null;
+    const hash = bcrypt.hashSync(password, 10);
+    const user = await mongo.createUser({ username, password_hash: hash, email, phone, role: userRole, profile_image: profileImage });
+    const token = generateToken(user);
+    res.cookie('token', token, { httpOnly: true, signed: true, maxAge: 86400000, sameSite: 'lax' });
+    res.status(201).json({ user: { id: user._id.toString(), username: user.username, role: user.role, profile_image: user.profile_image, status: 'active' } });
+  } catch (err) {
+    res.status(500).json({ error: 'Registration failed' });
+  }
 });
 
 app.get('/api/auth/me', authMiddleware, (req, res) => {
@@ -111,14 +115,38 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Current and new password required' });
-  if (newPassword.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters' });
-  const user = await mongo.findUser({ _id: req.user.idNum });
-  if (!bcrypt.compareSync(currentPassword, user.password_hash)) return res.status(401).json({ error: 'Current password is incorrect' });
-  const hash = bcrypt.hashSync(newPassword, 10);
-  await mongo.updateUserPassword(req.user.id, hash);
-  res.json({ message: 'Password updated successfully' });
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Current and new password required' });
+    if (newPassword.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    const user = await mongo.findUser({ _id: req.user.idNum });
+    if (!bcrypt.compareSync(currentPassword, user.password_hash)) return res.status(401).json({ error: 'Current password is incorrect' });
+    const hash = bcrypt.hashSync(newPassword, 10);
+    await mongo.updateUserPassword(req.user.id, hash);
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+  try {
+    const { email, phone, currentPassword, newPassword } = req.body;
+    const updates = {};
+    if (email !== undefined) updates.email = email;
+    if (phone !== undefined) updates.phone = phone;
+    if (currentPassword && newPassword) {
+      if (newPassword.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters' });
+      const user = await mongo.findUser({ _id: req.user.idNum });
+      if (!bcrypt.compareSync(currentPassword, user.password_hash)) return res.status(401).json({ error: 'Current password is incorrect' });
+      updates.password_hash = bcrypt.hashSync(newPassword, 10);
+    }
+    const updated = await mongo.updateUserProfile(req.user.id, updates);
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: { id: updated._id.toString(), username: updated.username, role: updated.role, email: updated.email, phone: updated.phone, profile_image: updated.profile_image, status: updated.status } });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
 });
 
 app.post('/api/auth/logout', (req, res) => {
