@@ -613,6 +613,17 @@
     }
   });
 
+  // Password toggle
+  $$('.pw-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = $('#' + btn.dataset.target);
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.querySelector('.pw-eye-open').classList.toggle('hidden', isPassword);
+      btn.querySelector('.pw-eye-closed').classList.toggle('hidden', !isPassword);
+    });
+  });
+
   // Submit Expense
   $('#expense-form').addEventListener('submit', async (e) => {
     e.preventDefault();

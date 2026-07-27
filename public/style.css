@@ -1111,3 +1111,36 @@ label {
   color: var(--text-secondary);
   margin-bottom: 16px;
 }
+
+/* Password toggle */
+.pw-wrapper {
+  position: relative;
+}
+.pw-wrapper input {
+  padding-right: 44px;
+}
+.pw-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.pw-toggle:hover {
+  color: var(--text-primary);
+}
+.pw-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+.pw-toggle .pw-eye-closed {
+  position: absolute;
+}
