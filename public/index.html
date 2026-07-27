@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f0f1a">
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="loading-bar" class="loading-bar"><div class="loading-bar-fill"></div></div>
+  <canvas id="bg-canvas"></canvas>
+
+  <div id="app">
+    <!-- Welcome View -->
+    <div id="view-welcome" class="view active">
+      <div class="welcome-content">
+        <img src="/logo.png" class="welcome-logo" alt="Chessbishop">
+        <h1 class="welcome-title">Welcome to Chessbishop<br>Expense Tracker</h1>
+        <p class="welcome-sub">Manage your expenses with ease</p>
+        <button id="btn-welcome-enter" class="btn btn-primary btn-lg">Get Started</button>
+      </div>
+    </div>
+
+    <!-- Login View -->
+    <div id="view-login" class="view">
+      <div id="login-card" class="auth-card">
+        <div class="auth-header">
+          <div class="logo-glow"></div>
+          <img src="/logo.png" class="auth-logo" alt="Chessbishop">
+          <h1>Expense Tracker</h1>
+          <p>Sign in to manage your expenses</p>
+        </div>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="Enter username" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Enter password" required autocomplete="current-password">
+          </div>
+          <div id="login-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        </form>
+        <div class="auth-footer">
+          <p class="auth-switch">Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+        </div>
+      </div>
+
+      <div id="signup-card" class="auth-card hidden">
+        <div class="auth-header">
+          <div class="logo-glow"></div>
+          <img src="/logo.png" class="auth-logo" alt="Chessbishop">
+          <h1>Create Account</h1>
+          <p>Sign up to start tracking expenses</p>
+        </div>
+        <form id="signup-form">
+          <div class="form-group">
+            <label for="signup-username">Username</label>
+            <input type="text" id="signup-username" placeholder="Choose a username" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="signup-email">Email Address</label>
+            <input type="email" id="signup-email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="signup-phone">Phone Number</label>
+            <input type="tel" id="signup-phone" placeholder="Enter phone number" required autocomplete="tel">
+          </div>
+          <div class="form-group">
+            <label for="signup-role">Role</label>
+            <select id="signup-role" required>
+              <option value="Intern">Intern</option>
+              <option value="Assistant Coach">Assistant Coach</option>
+              <option value="Head Coach">Head Coach</option>
+              <option value="COO">COO</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" placeholder="Create a password" required autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="signup-avatar">Profile Image (optional)</label>
+            <div class="signup-avatar-picker" id="avatar-picker">
+              <div class="avatar-preview" id="avatar-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <label class="btn btn-outline btn-sm avatar-upload-btn" for="signup-avatar">Choose Photo</label>
+              <input type="file" id="signup-avatar" accept="image/*" class="hidden-input">
+            </div>
+          </div>
+          <div id="signup-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full">Sign Up</button>
+        </form>
+        <div class="auth-footer">
+          <p class="auth-switch">Already have an account? <a href="#" id="show-login">Sign In</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="view-dashboard" class="view">
+      <nav class="navbar">
+        <div class="nav-right">
+          <span id="nav-user" class="nav-user"></span>
+          <button id="btn-logout" class="btn btn-outline btn-sm">Logout</button>
+        </div>
+        <div class="nav-brand">
+          <img src="/logo.png" class="nav-logo" alt="">
+          <span>Expense Tracker</span>
+        </div>
+      </nav>
+
+      <main class="container">
+        <!-- Employee Stats (visible to all) -->
+        <div id="employee-stats" class="stats-grid hidden scroll-fade">
+          <div class="stat-card glass">
+            <div class="stat-label">My Total</div>
+            <div class="stat-value" id="emp-stat-total">₹0</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value pending" id="emp-stat-pending">0</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-label">Approved</div>
+            <div class="stat-value approved" id="emp-stat-approved">₹0</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value rejected" id="emp-stat-rejected">0</div>
+          </div>
+        </div>
+
+        <!-- Admin Stats -->
+        <div id="admin-stats" class="stats-grid hidden scroll-fade">
+          <div class="stat-card glass">
+            <div class="stat-label">Total Expenses</div>
+            <div class="stat-value" id="stat-total">₹0</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value pending" id="stat-pending">0</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-label">Approved</div>
+            <div class="stat-value approved" id="stat-approved">₹0</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value rejected" id="stat-rejected">0</div>
+          </div>
+        </div>
+
+        <div class="card glass filter-bar scroll-fade">
+          <div class="filter-group">
+            <label>Status</label>
+            <select id="filter-status">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Category</label>
+            <select id="filter-category"><option value="">All</option></select>
+          </div>
+          <div class="filter-group">
+            <label>From</label>
+            <input type="date" id="filter-start">
+          </div>
+          <div class="filter-group">
+            <label>To</label>
+            <input type="date" id="filter-end">
+          </div>
+          <button id="btn-filter" class="btn btn-primary">Filter</button>
+        </div>
+
+        <div class="action-bar scroll-fade">
+          <button id="btn-new-expense" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            New Expense
+          </button>
+          <button id="btn-add-category" class="btn btn-outline hidden">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Add Category
+          </button>
+          <button id="btn-download-summary" class="btn btn-outline">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M4 8l4 4 4-4M3 13h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download Summary
+          </button>
+        </div>
+
+        <div id="charts-section" class="hidden scroll-fade">
+          <div class="charts-grid">
+            <div class="card glass">
+              <h3>Expenses by Category</h3>
+              <div id="chart-category" class="chart-container"></div>
+            </div>
+            <div class="card glass">
+              <h3>Expenses by Employee</h3>
+              <div id="chart-employee" class="chart-container"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="employee-branches" class="hidden"></div>
+
+        <div class="employee-filter-bar hidden" id="employee-filter-bar">
+          <span>Showing expenses for: <strong id="employee-filter-name"></strong></span>
+          <button class="btn-filter-clear" id="btn-clear-employee-filter">&times; Clear</button>
+        </div>
+
+        <div class="card glass table-wrapper scroll-fade">
+          <table id="expense-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th id="th-employee" class="hidden">Employee</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Receipt</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expense-body"></tbody>
+          </table>
+          <div id="no-expenses" class="empty-state">No expenses found</div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Expense Entry View -->
+    <div id="view-expense" class="view">
+      <nav class="navbar">
+        <div class="nav-right">
+          <button id="btn-expense-logout" class="btn btn-outline btn-sm">Logout</button>
+        </div>
+        <div class="nav-brand">
+          <button id="btn-back-dashboard" class="btn btn-outline btn-sm">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back
+          </button>
+          <img src="/logo.png" class="nav-logo" alt="">
+          <span>New Expense</span>
+        </div>
+      </nav>
+      <main class="container">
+        <div class="expense-form-page">
+          <div class="expense-form-card glass">
+            <div class="expense-form-header">
+              <svg class="expense-form-icon" viewBox="0 0 48 48" fill="none"><rect x="6" y="8" width="36" height="32" rx="4" stroke="currentColor" stroke-width="2"/><path d="M6 20h36" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="30" r="4" stroke="currentColor" stroke-width="2"/><path d="M18 30h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <h2>Submit New Expense</h2>
+              <p>Fill in the details below to submit your expense for approval</p>
+            </div>
+            <form id="expense-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="exp-amount">Amount (₹)</label>
+                  <input type="number" id="exp-amount" step="0.01" min="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                  <label for="exp-category">Category</label>
+                  <select id="exp-category" required></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="exp-description">Description</label>
+                <textarea id="exp-description" rows="4" placeholder="What was this expense for?" required></textarea>
+              </div>
+              <div class="form-group">
+                <label>Receipt (optional)</label>
+                <div class="file-upload-area" id="file-upload-area">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 6v14M10 14l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22v4a2 2 0 002 2h20a2 2 0 002-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  <span class="file-upload-text">Tap to upload receipt</span>
+                  <span class="file-hint">Max 5MB — JPG, PNG, GIF, or PDF</span>
+                </div>
+                <input type="file" id="exp-receipt" accept="image/*,.pdf" class="hidden-file-input">
+                <div id="file-name-display" class="file-name-display hidden"></div>
+              </div>
+              <div id="expense-error" class="error-msg"></div>
+              <div class="form-actions">
+                <button type="button" id="btn-cancel-expense" class="btn btn-outline">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Submit Expense
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div id="modal-category" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-content glass">
+        <div class="modal-header">
+          <h2>Add Category</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="category-form">
+          <div class="form-group">
+            <label for="cat-name">Category Name</label>
+            <input type="text" id="cat-name" placeholder="e.g. Transportation" required>
+          </div>
+          <div id="category-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-full">Add Category</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Receipt Preview Modal -->
+    <div id="modal-receipt" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-content glass">
+        <div class="modal-header">
+          <h2>Receipt</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div id="receipt-preview" class="receipt-preview"></div>
+      </div>
+    </div>
+
+    <!-- Edit Expense Modal -->
+    <div id="modal-edit-expense" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-content glass">
+        <div class="modal-header">
+          <h2>Edit Expense</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="edit-expense-form">
+          <input type="hidden" id="edit-expense-id">
+          <div class="form-group">
+            <label for="edit-exp-amount">Amount (₹)</label>
+            <input type="number" id="edit-exp-amount" step="0.01" min="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-exp-category">Category</label>
+            <select id="edit-exp-category" required></select>
+          </div>
+          <div class="form-group">
+            <label for="edit-exp-description">Description</label>
+            <textarea id="edit-exp-description" rows="3" required></textarea>
+          </div>
+          <div id="edit-expense-error" class="error-msg"></div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav id="bottom-nav" class="bottom-nav hidden">
+      <button class="bottom-nav-item active" data-view="view-dashboard">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="bottom-nav-item" data-view="view-expense">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Add</span>
+      </button>
+      <button class="bottom-nav-item" id="bottom-nav-logout">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Logout</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

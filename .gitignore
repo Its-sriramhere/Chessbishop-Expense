@@ -1,0 +1,4 @@
+node_modules/
+.env
+expense_tracker.db
+uploads/
