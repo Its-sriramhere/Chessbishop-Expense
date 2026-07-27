@@ -382,63 +382,79 @@
       <div class="modal-overlay"></div>
       <div class="modal-content glass">
         <div class="modal-header">
-          <h2>Edit Profile</h2>
+          <h2 id="account-modal-title">My Account</h2>
           <button class="modal-close">&times;</button>
         </div>
-        <form id="edit-profile-form">
+
+        <!-- View Mode -->
+        <div id="account-view">
           <div class="account-profile">
             <div class="account-avatar" id="account-avatar"></div>
             <div class="account-info">
               <div class="account-info-row"><span class="info-label">Username</span><span class="info-value" id="account-username"></span></div>
               <div class="account-info-row"><span class="info-label">Role</span><span class="info-value" id="account-role"></span></div>
+              <div class="account-info-row"><span class="info-label">Email</span><span class="info-value" id="account-email"></span></div>
+              <div class="account-info-row"><span class="info-label">Phone</span><span class="info-value" id="account-phone"></span></div>
               <div class="account-info-row"><span class="info-label">Status</span><span class="info-value account-status" id="account-status"></span></div>
             </div>
           </div>
-          <div class="account-divider"></div>
-          <h3 class="account-section-title">Contact Details</h3>
-          <div class="form-group">
-            <label for="edit-email">Email</label>
-            <input type="email" id="edit-email" placeholder="you@example.com">
-          </div>
-          <div class="form-group">
-            <label for="edit-phone">Phone</label>
-            <input type="tel" id="edit-phone" placeholder="Enter phone number">
-          </div>
-          <div class="account-divider"></div>
-          <h3 class="account-section-title">Change Password <span class="account-section-subtitle">(leave blank to keep current)</span></h3>
-          <div class="form-group pw-group">
-            <label for="pw-current">Current Password</label>
-            <div class="pw-wrapper">
-              <input type="password" id="pw-current" placeholder="Enter current password" autocomplete="current-password">
-              <button type="button" class="pw-toggle" data-target="pw-current" aria-label="Toggle password visibility">
-                <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg class="pw-eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
+          <button type="button" id="btn-edit-profile" class="btn btn-primary btn-full">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Profile
+          </button>
+        </div>
+
+        <!-- Edit Mode -->
+        <div id="account-edit" class="hidden">
+          <form id="edit-profile-form">
+            <div class="form-group">
+              <label for="edit-email">Email</label>
+              <input type="email" id="edit-email" placeholder="you@example.com">
             </div>
-          </div>
-          <div class="form-group pw-group">
-            <label for="pw-new">New Password</label>
-            <div class="pw-wrapper">
-              <input type="password" id="pw-new" placeholder="Enter new password (min 6 chars)" minlength="6" autocomplete="new-password">
-              <button type="button" class="pw-toggle" data-target="pw-new" aria-label="Toggle password visibility">
-                <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg class="pw-eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
+            <div class="form-group">
+              <label for="edit-phone">Phone</label>
+              <input type="tel" id="edit-phone" placeholder="Enter phone number">
             </div>
-          </div>
-          <div class="form-group pw-group">
-            <label for="pw-confirm">Confirm New Password</label>
-            <div class="pw-wrapper">
-              <input type="password" id="pw-confirm" placeholder="Confirm new password" minlength="6" autocomplete="new-password">
-              <button type="button" class="pw-toggle" data-target="pw-confirm" aria-label="Toggle password visibility">
-                <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg class="pw-eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
+            <div class="account-divider"></div>
+            <h3 class="account-section-title">Change Password <span class="account-section-subtitle">(leave blank to keep current)</span></h3>
+            <div class="form-group pw-group">
+              <label for="pw-current">Current Password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="pw-current" placeholder="Enter current password" autocomplete="current-password">
+                <button type="button" class="pw-toggle" data-target="pw-current" aria-label="Toggle password visibility">
+                  <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="pw-eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
             </div>
-          </div>
-          <div id="pw-error" class="error-msg"></div>
-          <button type="submit" class="btn btn-primary btn-full">Save Profile</button>
-        </form>
+            <div class="form-group pw-group">
+              <label for="pw-new">New Password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="pw-new" placeholder="Enter new password (min 6 chars)" minlength="6" autocomplete="new-password">
+                <button type="button" class="pw-toggle" data-target="pw-new" aria-label="Toggle password visibility">
+                  <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="pw-eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-group pw-group">
+              <label for="pw-confirm">Confirm New Password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="pw-confirm" placeholder="Confirm new password" minlength="6" autocomplete="new-password">
+                <button type="button" class="pw-toggle" data-target="pw-confirm" aria-label="Toggle password visibility">
+                  <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="pw-eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+            <div id="pw-error" class="error-msg"></div>
+            <div class="form-actions">
+              <button type="button" id="btn-cancel-edit" class="btn btn-outline">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Profile</button>
+            </div>
+          </form>
+        </div>
+
       </div>
     </div>
 

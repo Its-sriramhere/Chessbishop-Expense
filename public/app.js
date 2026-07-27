@@ -580,6 +580,22 @@
   });
 
   // Account Modal
+  function showAccountView() {
+    $('#account-view').classList.remove('hidden');
+    $('#account-edit').classList.add('hidden');
+    $('#account-modal-title').textContent = 'My Account';
+  }
+  function showAccountEdit() {
+    $('#account-view').classList.add('hidden');
+    $('#account-edit').classList.remove('hidden');
+    $('#account-modal-title').textContent = 'Edit Profile';
+    $('#pw-error').textContent = '';
+    $('#edit-email').value = currentUser.email || '';
+    $('#edit-phone').value = currentUser.phone || '';
+    $('#pw-current').value = '';
+    $('#pw-new').value = '';
+    $('#pw-confirm').value = '';
+  }
   function openAccountModal() {
     if (!currentUser) return;
     const avatar = currentUser.profile_image
@@ -588,18 +604,17 @@
     $('#account-avatar').innerHTML = avatar;
     $('#account-username').textContent = currentUser.username;
     $('#account-role').textContent = currentUser.role;
+    $('#account-email').textContent = currentUser.email || 'Not set';
+    $('#account-phone').textContent = currentUser.phone || 'Not set';
     const statusEl = $('#account-status');
     statusEl.textContent = currentUser.status || 'active';
     statusEl.className = 'info-value account-status ' + (currentUser.status || 'active');
-    $('#edit-email').value = currentUser.email || '';
-    $('#edit-phone').value = currentUser.phone || '';
-    $('#pw-current').value = '';
-    $('#pw-new').value = '';
-    $('#pw-confirm').value = '';
-    $('#pw-error').textContent = '';
+    showAccountView();
     $('#modal-account').classList.add('active');
   }
   $('#nav-user').addEventListener('click', openAccountModal);
+  $('#btn-edit-profile').addEventListener('click', showAccountEdit);
+  $('#btn-cancel-edit').addEventListener('click', showAccountView);
 
   // Edit Profile
   $('#edit-profile-form').addEventListener('submit', async (e) => {
@@ -623,7 +638,8 @@
       const data = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify(body) });
       currentUser = data.user;
       toast('Profile updated successfully');
-      setTimeout(() => $('#modal-account').classList.remove('active'), 800);
+      showAccountView();
+      openAccountModal();
     } catch (err) {
       errEl.textContent = err.message;
     }
