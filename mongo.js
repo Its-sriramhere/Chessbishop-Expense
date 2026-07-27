@@ -7,7 +7,11 @@ let cachedDb = null;
 
 async function connectMongo(uri) {
   if (cachedDb) return cachedDb;
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 10000,
+  });
   await client.connect();
   cachedClient = client;
   cachedDb = client.db(DB_NAME);
