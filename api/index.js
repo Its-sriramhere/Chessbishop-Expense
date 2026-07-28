@@ -304,7 +304,7 @@ app.put('/api/admin/expenses/:id', authMiddleware, adminOnly, async (req, res) =
 
 // ---- Receipts from GridFS ----
 
-app.get('/api/receipts/:fileId', authMiddleware, async (req, res) => {
+app.get('/api/receipts/:fileId', ensureDb, async (req, res) => {
   try {
     const oid = mongo.toObjectId(req.params.fileId);
     if (!oid) return res.status(404).json({ error: 'Invalid receipt ID' });

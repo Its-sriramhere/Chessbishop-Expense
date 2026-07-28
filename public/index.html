@@ -10,7 +10,23 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div id="loading-bar" class="loading-bar"><div class="loading-bar-fill"></div></div>
+  <!-- Full-page loading screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-screen-inner">
+      <img src="/logo.png" class="loading-logo" alt="">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Download progress overlay -->
+  <div id="download-overlay" class="download-overlay hidden">
+    <div class="download-overlay-box glass">
+      <div class="spinner"></div>
+      <p id="download-status" class="download-status-text">Preparing download...</p>
+    </div>
+  </div>
+
   <canvas id="bg-canvas"></canvas>
 
   <div id="app">

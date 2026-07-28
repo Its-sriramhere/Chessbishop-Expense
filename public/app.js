@@ -61,7 +61,7 @@
     } catch {
       showView('view-welcome');
     } finally {
-      finishLoadingBar();
+      hideLoadingScreen();
     }
   }
 
@@ -364,28 +364,39 @@
     </div>`;
   }
 
-  async function buildZip(expenses, userName, filenamePrefix) {
+  async function buildZip(expenses, userName, filenamePrefix, onProgress) {
     const zip = new JSZip();
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     const isAdmin = currentUser.role === 'admin';
 
+    if (onProgress) onProgress('Generating expenses CSV...');
     const csv = buildCsv(expenses, isAdmin);
     zip.file('expenses.csv', csv);
 
+    if (onProgress) onProgress('Creating summary PDF...');
     const htmlStr = buildSummaryHtml(expenses, userName, isAdmin, dateStr);
     const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px';
+    container.style.cssText = 'position:fixed;top:0;left:0;width:800px;opacity:0;pointer-events:none;z-index:-1';
     container.innerHTML = htmlStr;
     document.body.appendChild(container);
 
-    const pdfBlob = await html2pdf().set({
-      margin: 10, filename: 'summary.pdf', image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    }).from(container).outputPdf('blob');
+    let pdfBlob;
+    try {
+      pdfBlob = await html2pdf().set({
+        margin: 10, filename: 'summary.pdf', image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(container).outputPdf('blob');
+    } catch (e) {
+      console.error('PDF generation failed:', e);
+      pdfBlob = null;
+    }
     document.body.removeChild(container);
-    zip.file('summary.pdf', pdfBlob);
+    if (pdfBlob && pdfBlob.size > 0) {
+      zip.file('summary.pdf', pdfBlob);
+    }
 
+    if (onProgress) onProgress('Fetching receipt images...');
     const receiptFolder = zip.folder('receipts');
     const receiptExpenses = expenses.filter((e) => e.receipt_path);
     const receiptDataUrls = {};
@@ -405,6 +416,7 @@
       idx++;
     });
 
+    if (onProgress) onProgress('Building ZIP file...');
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     saveAs(zipBlob, filenamePrefix + '_' + now.toISOString().slice(0, 10) + '.zip');
   }
@@ -413,15 +425,17 @@
     if (downloadingSummary) return;
     downloadingSummary = true;
     const btn = $('#btn-download-summary');
-    if (btn) { btn.disabled = true; btn.textContent = 'Generating ZIP...'; }
+    if (btn) btn.disabled = true;
+    showDownloadOverlay('Generating expenses CSV...');
     try {
       const prefix = sanitizeFilename('Expense_Summary_' + currentUser.username);
-      await buildZip(currentExpenses, currentUser.username, prefix);
+      await buildZip(currentExpenses, currentUser.username, prefix, updateDownloadOverlay);
       toast('ZIP downloaded successfully!');
     } catch (err) {
       console.error(err);
       toast('Failed to generate ZIP', 'error');
     } finally {
+      hideDownloadOverlay();
       downloadingSummary = false;
       if (btn) { btn.disabled = false; btn.textContent = 'Download Summary'; }
     }
@@ -809,16 +823,18 @@
     async downloadEmployeeSummary(userId, username) {
       if (downloadingSummary) return;
       downloadingSummary = true;
+      showDownloadOverlay('Generating expenses CSV...');
       try {
         const expenses = await api(`/api/admin/expenses?user_id=${userId}`);
         if (!expenses.length) { toast('No expenses found for this employee', 'error'); return; }
         const prefix = sanitizeFilename('Expense_Summary_' + username);
-        await buildZip(expenses, username, prefix);
+        await buildZip(expenses, username, prefix, updateDownloadOverlay);
         toast('ZIP downloaded successfully!');
       } catch (err) {
         console.error(err);
         toast('Failed to generate ZIP', 'error');
       } finally {
+        hideDownloadOverlay();
         downloadingSummary = false;
       }
     },
@@ -1019,25 +1035,29 @@
     });
   }
 
-  // Loading Bar
-  const loadingBar = document.getElementById('loading-bar');
-  let loadingProgress = 0;
-  const loadingInterval = setInterval(() => {
-    if (loadingProgress < 30) loadingProgress += 8;
-    else if (loadingProgress < 60) loadingProgress += 3;
-    else if (loadingProgress < 85) loadingProgress += 1;
-    if (loadingBar) loadingBar.querySelector('.loading-bar-fill').style.width = loadingProgress + '%';
-  }, 100);
+  // Loading Screen
+  const loadingScreen = document.getElementById('loading-screen');
 
-  function finishLoadingBar() {
-    clearInterval(loadingInterval);
-    if (!loadingBar) return;
-    loadingBar.querySelector('.loading-bar-fill').style.width = '100%';
-    loadingBar.classList.add('done');
-    setTimeout(() => {
-      loadingBar.classList.add('fade-out');
-      setTimeout(() => loadingBar.remove(), 500);
-    }, 300);
+  function hideLoadingScreen() {
+    if (!loadingScreen) return;
+    loadingScreen.classList.add('fade-out');
+    setTimeout(() => { loadingScreen.remove(); }, 600);
+  }
+
+  // Download Overlay
+  function showDownloadOverlay(msg) {
+    const overlay = document.getElementById('download-overlay');
+    const status = document.getElementById('download-status');
+    if (overlay) { overlay.classList.remove('hidden'); overlay.classList.remove('fade-out'); }
+    if (status) status.textContent = msg || 'Preparing download...';
+  }
+  function updateDownloadOverlay(msg) {
+    const status = document.getElementById('download-status');
+    if (status) status.textContent = msg;
+  }
+  function hideDownloadOverlay() {
+    const overlay = document.getElementById('download-overlay');
+    if (overlay) { overlay.classList.add('fade-out'); setTimeout(() => { overlay.classList.add('hidden'); overlay.classList.remove('fade-out'); }, 300); }
   }
 
   // Scroll Fade-in Animation

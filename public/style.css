@@ -1039,34 +1039,6 @@ label {
   transform: translateY(0);
 }
 
-/* Loading Progress Bar */
-.loading-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  z-index: 9999;
-  background: transparent;
-  pointer-events: none;
-}
-.loading-bar-fill {
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, var(--accent), #ffd700);
-  box-shadow: 0 0 10px var(--accent-glow), 0 0 4px var(--accent);
-  transition: width 0.4s ease;
-  border-radius: 0 2px 2px 0;
-}
-.loading-bar.done .loading-bar-fill {
-  width: 100%;
-  transition: width 0.3s ease;
-}
-.loading-bar.fade-out {
-  opacity: 0;
-  transition: opacity 0.4s ease 0.3s;
-}
-
 /* Account Modal */
 .account-profile {
   display: flex;
@@ -1195,4 +1167,84 @@ label {
 }
 .pw-toggle .pw-eye-closed {
   position: absolute;
+}
+
+/* ---- Spinner ---- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(212, 160, 23, 0.2);
+  border-top-color: var(--accent, #d4a017);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+/* ---- Full-page Loading Screen ---- */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f1a;
+  transition: opacity 0.5s ease;
+}
+.loading-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-screen-inner {
+  text-align: center;
+}
+.loading-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 24px;
+  object-position: 30% center;
+}
+.loading-text {
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+/* ---- Download Progress Overlay ---- */
+.download-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: opacity 0.3s ease;
+}
+.download-overlay.hidden {
+  display: none;
+}
+.download-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.download-overlay-box {
+  text-align: center;
+  padding: 40px 48px;
+  min-width: 280px;
+  border-radius: 16px;
+}
+.download-status-text {
+  margin-top: 20px;
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  letter-spacing: 0.3px;
 }
