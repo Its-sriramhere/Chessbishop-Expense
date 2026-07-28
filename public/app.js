@@ -309,53 +309,118 @@
 
   let downloadingSummary = false;
 
-  async function downloadSummary() {
-    if (downloadingSummary) return;
-    downloadingSummary = true;
-    const btn = $('#btn-download-summary');
-    if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
-    try {
-    const expenses = currentExpenses;
-    const isAdmin = currentUser.role === 'admin';
-    const userName = currentUser.username;
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  function sanitizeFilename(str) {
+    return (str || '').replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_').slice(0, 60);
+  }
 
+  function dataUrlToBlob(dataUrl) {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const raw = atob(parts[1]);
+    const arr = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  function buildCsv(expenses, isAdmin) {
+    const header = isAdmin
+      ? 'Date,Employee,Category,Description,Amount,Status'
+      : 'Date,Category,Description,Amount,Status';
+    const rows = expenses.map((e) => {
+      const date = e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN');
+      const desc = '"' + (e.description || '').replace(/"/g, '""') + '"';
+      const cat = '"' + (e.category_name || '').replace(/"/g, '""') + '"';
+      const amt = parseFloat(e.amount).toFixed(2);
+      const line = isAdmin
+        ? [date, e.username, cat, desc, amt, e.status]
+        : [date, cat, desc, amt, e.status];
+      return line.join(',');
+    });
+    return header + '\n' + rows.join('\n');
+  }
+
+  function buildSummaryHtml(expenses, userName, isAdmin, dateStr) {
     const total = expenses.reduce((s, e) => s + parseFloat(e.amount), 0);
     const approved = expenses.filter((e) => e.status === 'approved').reduce((s, e) => s + parseFloat(e.amount), 0);
     const pending = expenses.filter((e) => e.status === 'pending').reduce((s, e) => s + parseFloat(e.amount), 0);
     const rejected = expenses.filter((e) => e.status === 'rejected').reduce((s, e) => s + parseFloat(e.amount), 0);
 
+    return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:30px">
+      <div style="text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px">
+        <h1 style="font-size:22px;margin-bottom:4px">Expense Summary</h1>
+        <p style="font-size:13px;color:#666">${isAdmin ? 'All Employees' : escapeHtml(userName)} &bull; ${dateStr}</p>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Total</div><div style="font-size:20px;font-weight:700;margin-top:4px">₹${total.toFixed(2)}</div></div>
+        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Expenses</div><div style="font-size:20px;font-weight:700;margin-top:4px">${expenses.length}</div></div>
+        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Approved</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#228b22">₹${approved.toFixed(2)}</div></div>
+        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Pending</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#b8860b">₹${pending.toFixed(2)}</div></div>
+        <div style="flex:1;min-width:100px;border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;text-transform:uppercase;color:#888">Rejected</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#dc143c">₹${rejected.toFixed(2)}</div></div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr>${isAdmin ? '<th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222">Employee</th>' : ''}<th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222">Date</th><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222">Category</th><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222">Description</th><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222">Amount</th><th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222">Status</th></tr></thead>
+        <tbody>${expenses.map((e) => `<tr>${isAdmin ? `<td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px">${escapeHtml(e.username)}</td>` : ''}<td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px">${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px">${escapeHtml(e.category_name)}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px">${escapeHtml(e.description)}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px">₹${parseFloat(e.amount).toFixed(2)}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:12px;text-transform:capitalize">${e.status}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  async function buildZip(expenses, userName, filenamePrefix) {
+    const zip = new JSZip();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const isAdmin = currentUser.role === 'admin';
+
+    const csv = buildCsv(expenses, isAdmin);
+    zip.file('expenses.csv', csv);
+
+    const htmlStr = buildSummaryHtml(expenses, userName, isAdmin, dateStr);
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px';
+    container.innerHTML = htmlStr;
+    document.body.appendChild(container);
+
+    const pdfBlob = await html2pdf().set({
+      margin: 10, filename: 'summary.pdf', image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    }).from(container).outputPdf('blob');
+    document.body.removeChild(container);
+    zip.file('summary.pdf', pdfBlob);
+
+    const receiptFolder = zip.folder('receipts');
     const receiptExpenses = expenses.filter((e) => e.receipt_path);
     const receiptDataUrls = {};
     await Promise.all(receiptExpenses.map(async (e) => {
       receiptDataUrls[e.id] = await fetchReceiptDataUrl(e.receipt_path);
     }));
-    let receiptHtml = '';
+    const usedNames = {};
+    let idx = 1;
     receiptExpenses.forEach((e) => {
       const dataUrl = receiptDataUrls[e.id];
       if (!dataUrl) return;
-      const isImage = dataUrl.startsWith('data:image');
-      receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div>${isImage ? `<img src="${dataUrl}" style="max-width:100%;max-height:300px;border:1px solid #ddd;border-radius:4px" />` : `<iframe src="${dataUrl}" style="width:100%;height:400px;border:1px solid #ddd;border-radius:4px"></iframe>`}</div>`;
+      const ext = dataUrl.startsWith('data:image/png') ? 'png' : dataUrl.startsWith('data:image/gif') ? 'gif' : 'jpg';
+      let name = sanitizeFilename(e.description || 'receipt');
+      if (usedNames[name]) { usedNames[name]++; name = name + '_' + usedNames[name]; } else { usedNames[name] = 1; }
+      const filename = String(idx).padStart(2, '0') + '_' + name + '.' + ext;
+      receiptFolder.file(filename, dataUrlToBlob(dataUrl));
+      idx++;
     });
 
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${userName}</title>
-    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:40px}.header{text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px}.header h1{font-size:22px;margin-bottom:4px}.header p{font-size:13px;color:#666}.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}.stat-box{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.5px}.stat-box .value{font-size:20px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}tr:nth-child(even){background:#f9f9f9}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}.badge-pending{background:#fff3cd;color:#856404}.badge-approved{background:#d4edda;color:#155724}.badge-rejected{background:#f8d7da;color:#721c24}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999}@media print{body{padding:20px}}</style></head><body>
-    <div class="header"><h1>Expense Summary</h1><p>${isAdmin ? 'All Employees' : escapeHtml(userName)} &bull; Generated on ${dateStr}</p></div>
-    <div class="stats"><div class="stat-box"><div class="label">Total</div><div class="value">₹${total.toFixed(2)}</div></div><div class="stat-box"><div class="label">Expenses</div><div class="value">${expenses.length}</div></div><div class="stat-box"><div class="label">Approved</div><div class="value" style="color:#228b22">₹${approved.toFixed(2)}</div></div><div class="stat-box"><div class="label">Pending</div><div class="value" style="color:#b8860b">₹${pending.toFixed(2)}</div></div><div class="stat-box"><div class="label">Rejected</div><div class="value" style="color:#dc143c">₹${rejected.toFixed(2)}</div></div></div>
-    <table><thead><tr><th>Date</th>${isAdmin ? '<th>Employee</th>' : ''}<th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td>${isAdmin ? `<td>${escapeHtml(e.username)}</td>` : ''}<td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
-    ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
-    <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
-    <script>var printed=false;window.onafterprint=function(){window.close()};setTimeout(function(){if(!printed){printed=true;window.print()}},500)<\/script></body></html>`;
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-    } else {
-      toast('Popup blocked. Please allow popups for this site.', 'error');
-    }
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    saveAs(zipBlob, filenamePrefix + '_' + now.toISOString().slice(0, 10) + '.zip');
+  }
+
+  async function downloadSummary() {
+    if (downloadingSummary) return;
+    downloadingSummary = true;
+    const btn = $('#btn-download-summary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating ZIP...'; }
+    try {
+      const prefix = sanitizeFilename('Expense_Summary_' + currentUser.username);
+      await buildZip(currentExpenses, currentUser.username, prefix);
+      toast('ZIP downloaded successfully!');
     } catch (err) {
-      toast('Failed to generate summary', 'error');
+      console.error(err);
+      toast('Failed to generate ZIP', 'error');
     } finally {
       downloadingSummary = false;
       if (btn) { btn.disabled = false; btn.textContent = 'Download Summary'; }
@@ -747,43 +812,12 @@
       try {
         const expenses = await api(`/api/admin/expenses?user_id=${userId}`);
         if (!expenses.length) { toast('No expenses found for this employee', 'error'); return; }
-
-        const total = expenses.reduce((s, e) => s + parseFloat(e.amount), 0);
-        const approved = expenses.filter((e) => e.status === 'approved').reduce((s, e) => s + parseFloat(e.amount), 0);
-        const pending = expenses.filter((e) => e.status === 'pending').reduce((s, e) => s + parseFloat(e.amount), 0);
-        const rejected = expenses.filter((e) => e.status === 'rejected').reduce((s, e) => s + parseFloat(e.amount), 0);
-        const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-
-        const receiptExpenses = expenses.filter((e) => e.receipt_path);
-        const receiptDataUrls = {};
-        await Promise.all(receiptExpenses.map(async (e) => {
-          receiptDataUrls[e.id] = await fetchReceiptDataUrl(e.receipt_path);
-        }));
-        let receiptHtml = '';
-        receiptExpenses.forEach((e) => {
-          const dataUrl = receiptDataUrls[e.id];
-          if (!dataUrl) return;
-          const isImage = dataUrl.startsWith('data:image');
-          receiptHtml += `<div style="margin-top:12px"><div style="font-size:12px;color:#555;margin-bottom:4px"><strong>${escapeHtml(e.description)}</strong> — ${escapeHtml(e.category_name)} (₹${parseFloat(e.amount).toFixed(2)})</div>${isImage ? `<img src="${dataUrl}" style="max-width:100%;max-height:300px;border:1px solid #ddd;border-radius:4px" />` : `<iframe src="${dataUrl}" style="width:100%;height:400px;border:1px solid #ddd;border-radius:4px"></iframe>`}</div>`;
-        });
-
-        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expense Summary - ${username}</title>
-        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#222;padding:40px}.header{text-align:center;border-bottom:2px solid #222;padding-bottom:16px;margin-bottom:24px}.header h1{font-size:22px;margin-bottom:4px}.header p{font-size:13px;color:#666}.stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}.stat-box{flex:1;min-width:120px;border:1px solid #ddd;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.5px}.stat-box .value{font-size:20px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;color:#888;border-bottom:2px solid #222}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}tr:nth-child(even){background:#f9f9f9}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}.badge-pending{background:#fff3cd;color:#856404}.badge-approved{background:#d4edda;color:#155724}.badge-rejected{background:#f8d7da;color:#721c24}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#999}@media print{body{padding:20px}}</style></head><body>
-        <div class="header"><h1>Expense Summary</h1><p>${escapeHtml(username)} &bull; Generated on ${dateStr}</p></div>
-        <div class="stats"><div class="stat-box"><div class="label">Total</div><div class="value">₹${total.toFixed(2)}</div></div><div class="stat-box"><div class="label">Expenses</div><div class="value">${expenses.length}</div></div><div class="stat-box"><div class="label">Approved</div><div class="value" style="color:#228b22">₹${approved.toFixed(2)}</div></div><div class="stat-box"><div class="label">Pending</div><div class="value" style="color:#b8860b">₹${pending.toFixed(2)}</div></div><div class="stat-box"><div class="label">Rejected</div><div class="value" style="color:#dc143c">₹${rejected.toFixed(2)}</div></div></div>
-        <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody>${expenses.map((e) => `<tr><td>${e.expense_date || new Date(e.created_at).toLocaleDateString('en-IN')}</td><td>${escapeHtml(e.category_name)}</td><td>${escapeHtml(e.description)}</td><td>₹${parseFloat(e.amount).toFixed(2)}</td><td><span class="badge badge-${e.status}">${e.status}</span></td></tr>`).join('')}</tbody></table>
-        ${receiptHtml ? `<div style="page-break-before:always"><h2 style="font-size:16px;margin-bottom:12px">Attached Receipts</h2>${receiptHtml}</div>` : ''}
-        <div class="footer">Chessbishop Expense Tracker &bull; Auto-generated report</div>
-        <script>var printed=false;window.onafterprint=function(){window.close()};setTimeout(function(){if(!printed){printed=true;window.print()}},500)<\/script></body></html>`;
-        const win = window.open('', '_blank');
-        if (win) {
-          win.document.write(html);
-          win.document.close();
-        } else {
-          toast('Popup blocked. Please allow popups for this site.', 'error');
-        }
+        const prefix = sanitizeFilename('Expense_Summary_' + username);
+        await buildZip(expenses, username, prefix);
+        toast('ZIP downloaded successfully!');
       } catch (err) {
-        toast(err.message, 'error');
+        console.error(err);
+        toast('Failed to generate ZIP', 'error');
       } finally {
         downloadingSummary = false;
       }
